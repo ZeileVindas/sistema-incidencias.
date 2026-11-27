@@ -7,7 +7,11 @@ if (!isset($_SESSION['id_usuario'])) {
 }
 
 $nombre_usuario = $_SESSION['nombre'] ?? 'Usuario';
-$rol_usuario = $_SESSION['rol'] ?? 'Usuario';
+$rol_raw = $_SESSION['rol'] ?? 'solicitante';
+$rol_normalizado = strtolower(trim((string) $rol_raw));
+$es_personal_soporte = in_array($rol_normalizado, ['tecnico', 'técnico', 'administrador', 'admin'], true);
+$es_admin = in_array($rol_normalizado, ['administrador', 'admin'], true);
+$etiqueta_rol = $es_personal_soporte ? 'Técnico / Admin' : 'Solicitante';
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -259,9 +263,8 @@ $rol_usuario = $_SESSION['rol'] ?? 'Usuario';
             </span>
             <div class="d-flex align-items-center gap-3">
                 <div class="user-badge">
-                    <span>Usuario:</span>
+                    <span><?php echo htmlspecialchars($etiqueta_rol); ?>:</span>
                     <strong><?php echo htmlspecialchars($nombre_usuario); ?></strong>
-                    <span class="badge bg-secondary ms-1" style="font-size: 0.7rem; background-color: var(--brushed-brass) !important;"><?php echo htmlspecialchars($rol_usuario); ?></span>
                 </div>
                 <a href="logout.php" class="btn-logout">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -276,7 +279,7 @@ $rol_usuario = $_SESSION['rol'] ?? 'Usuario';
     <!-- Contenido Central -->
     <div class="main-container">
         <div class="dashboard-card">
-            <h1 class="welcome-title">¡Bienvenido, <span><?php echo htmlspecialchars(explode(' ', $nombre_usuario)[0]); ?></span>!</h1>
+            <h1 class="welcome-title">¡Bienvenido, <span><?php echo htmlspecialchars(explode(' ', trim($nombre_usuario))[0]); ?></span>!</h1>
             <p class="welcome-subtitle">Seleccione una de las opciones disponibles para gestionar sus incidencias en el sistema.</p>
 
             <div class="action-stack">
@@ -310,26 +313,44 @@ $rol_usuario = $_SESSION['rol'] ?? 'Usuario';
                     </svg>
                 </a>
 
-                <hr class="section-divider">
+                <?php if ($es_personal_soporte): ?>
+                    <hr class="section-divider">
 
-                <!-- Panel de Soporte / Técnico -->
-                <div class="text-start" style="font-size: 0.76rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #8C857B; margin-bottom: 8px;">
-                    Panel de Operaciones Técnicas
-                </div>
-
-                <a href="admin_incidencias.php" class="btn-action btn-tech-action">
-                    <div class="action-content">
-                        <div class="action-icon" style="background: rgba(176, 141, 87, 0.2); color: var(--brass-light);">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
-                            </svg>
-                        </div>
-                        <span>Ir a la Cola General de Tickets (Técnico)</span>
+                    <!-- Panel de Soporte / Técnico -->
+                    <div class="text-start" style="font-size: 0.76rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #8C857B; margin-bottom: 8px;">
+                        Panel de Operaciones Técnicas
                     </div>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--brass-light);">
-                        <path d="m9 18 6-6-6-6"/>
-                    </svg>
-                </a>
+
+                    <a href="admin_incidencias.php" class="btn-action btn-tech-action">
+                        <div class="action-content">
+                            <div class="action-icon" style="background: rgba(176, 141, 87, 0.2); color: var(--brass-light);">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+                                </svg>
+                            </div>
+                            <span>Ir a la Cola General de Tickets (Técnico)</span>
+                        </div>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--brass-light);">
+                            <path d="m9 18 6-6-6-6"/>
+                        </svg>
+                    </a>
+
+                    <?php if ($es_admin): ?>
+                        <a href="admin_usuarios.php" class="btn-action btn-secondary-action">
+                            <div class="action-content">
+                                <div class="action-icon">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                                    </svg>
+                                </div>
+                                <span>Administrar Cuentas de Usuario</span>
+                            </div>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--brushed-brass);">
+                                <path d="m9 18 6-6-6-6"/>
+                            </svg>
+                        </a>
+                    <?php endif; ?>
+                <?php endif; ?>
             </div>
 
             <div class="footer-note">

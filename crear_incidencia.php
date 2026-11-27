@@ -9,6 +9,12 @@ if (!isset($_SESSION['id_usuario'])) {
 require_once 'config/conexion.php';
 
 $error = '';
+$titulo_valor = '';
+$categoria_valor = '';
+$prioridad_valor = 'Media';
+$descripcion_valor = '';
+
+$prioridades_validas = ['Baja', 'Media', 'Alta'];
 
 // Obtener categorías limpias (sin duplicados ni filas vacías)
 try {
@@ -19,35 +25,45 @@ try {
                                   ORDER BY id_categoria ASC");
     $categorias = $stmt_cat->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
+    error_log("Error al cargar categorías en crear_incidencia.php: " . $e->getMessage());
     $categorias = [];
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $titulo = trim($_POST['titulo'] ?? '');
-    $id_categoria = trim($_POST['id_categoria'] ?? '');
-    $prioridad = trim($_POST['prioridad'] ?? '');
-    $descripcion = trim($_POST['descripcion'] ?? '');
-    $id_usuario = $_SESSION['id_usuario'];
+$ids_categorias_validos = array_map(fn($c) => (int) $c['id_categoria'], $categorias);
 
-    if (!empty($titulo) && !empty($id_categoria) && !empty($prioridad) && !empty($descripcion)) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $titulo_valor = trim($_POST['titulo'] ?? '');
+    $categoria_valor = trim($_POST['id_categoria'] ?? '');
+    $prioridad_valor = trim($_POST['prioridad'] ?? 'Media');
+    $descripcion_valor = trim($_POST['descripcion'] ?? '');
+    $id_usuario = (int) $_SESSION['id_usuario'];
+
+    $id_categoria_int = filter_var($categoria_valor, FILTER_VALIDATE_INT);
+
+    if ($titulo_valor === '' || $id_categoria_int === false || $prioridad_valor === '' || $descripcion_valor === '') {
+        $error = "Por favor, complete todos los campos requeridos.";
+    } elseif (!in_array($id_categoria_int, $ids_categorias_validos, true)) {
+        $error = "Seleccione una categoría válida.";
+    } elseif (!in_array($prioridad_valor, $prioridades_validas, true)) {
+        $error = "Seleccione un nivel de prioridad válido.";
+    } else {
         try {
             $stmt = $conexion->prepare("INSERT INTO incidencias (id_usuario, id_categoria, titulo, descripcion, prioridad, estado, fecha_creacion) 
                                         VALUES (:id_usuario, :id_categoria, :titulo, :descripcion, :prioridad, 'Abierto', NOW())");
             $stmt->execute([
-                ':id_usuario' => $id_usuario,
-                ':id_categoria' => $id_categoria,
-                ':titulo' => $titulo,
-                ':descripcion' => $descripcion,
-                ':prioridad' => $prioridad
+                ':id_usuario'   => $id_usuario,
+                ':id_categoria' => $id_categoria_int,
+                ':titulo'       => $titulo_valor,
+                ':descripcion'  => $descripcion_valor,
+                ':prioridad'    => $prioridad_valor
             ]);
-            
+
             header("Location: mis_incidencias.php?exito=1");
             exit();
         } catch (PDOException $e) {
-            $error = "Error al registrar la incidencia: " . $e->getMessage();
+            error_log("Error al registrar incidencia en crear_incidencia.php: " . $e->getMessage());
+            $error = "Ocurrió un error al registrar la incidencia. Intente nuevamente.";
         }
-    } else {
-        $error = "Por favor, complete todos los campos requeridos.";
     }
 }
 ?>
@@ -327,7 +343,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <form method="POST" action="">
                 <div class="mb-3">
                     <label for="titulo" class="input-label">Título del Problema</label>
-                    <input type="text" class="form-control-luxury" id="titulo" name="titulo" placeholder="Ej. No enciende la impresora de red" required>
+                    <input type="text" class="form-control-luxury" id="titulo" name="titulo" value="<?php echo htmlspecialchars($titulo_valor); ?>" placeholder="Ej. No enciende la impresora de red" required>
                 </div>
 
                 <div class="row">
@@ -335,9 +351,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="col-md-7 mb-3">
                         <label for="id_categoria" class="input-label">Categoría</label>
                         <select name="id_categoria" id="id_categoria" class="form-select-luxury" required>
-                            <option value="" disabled selected>Seleccione una categoría...</option>
+                            <option value="" disabled <?php echo ($categoria_valor === '') ? 'selected' : ''; ?>>Seleccione una categoría...</option>
                             <?php foreach ($categorias as $cat): ?>
-                                <option value="<?php echo $cat['id_categoria']; ?>"><?php echo htmlspecialchars($cat['nombre']); ?></option>
+                                <?php $catId = (int) $cat['id_categoria']; ?>
+                                <option value="<?php echo $catId; ?>" <?php echo ((int) $categoria_valor === $catId) ? 'selected' : ''; ?>>
+                                    <?php echo htmlspecialchars($cat['nombre']); ?>
+                                </option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -346,16 +365,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="col-md-5 mb-3">
                         <label for="prioridad" class="input-label">Prioridad</label>
                         <select name="prioridad" id="prioridad" class="form-select-luxury" required>
-                            <option value="Baja">Baja</option>
-                            <option value="Media" selected>Media</option>
-                            <option value="Alta">Alta</option>
+                            <option value="Baja" <?php echo ($prioridad_valor === 'Baja') ? 'selected' : ''; ?>>Baja</option>
+                            <option value="Media" <?php echo ($prioridad_valor === 'Media') ? 'selected' : ''; ?>>Media</option>
+                            <option value="Alta" <?php echo ($prioridad_valor === 'Alta') ? 'selected' : ''; ?>>Alta</option>
                         </select>
                     </div>
                 </div>
 
                 <div class="mb-4">
                     <label for="descripcion" class="input-label">Descripción Detallada</label>
-                    <textarea class="form-control-luxury" id="descripcion" name="descripcion" rows="4" placeholder="Describa con detalle el inconveniente presentado..." required></textarea>
+                    <textarea class="form-control-luxury" id="descripcion" name="descripcion" rows="4" placeholder="Describa con detalle el inconveniente presentado..." required><?php echo htmlspecialchars($descripcion_valor); ?></textarea>
                 </div>
 
                 <button type="submit" class="btn-luxury-submit">

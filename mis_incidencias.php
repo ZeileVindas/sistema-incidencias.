@@ -8,20 +8,22 @@ if (!isset($_SESSION['id_usuario'])) {
 
 require_once 'config/conexion.php';
 
-$id_usuario = $_SESSION['id_usuario'];
+$id_usuario = (int) $_SESSION['id_usuario'];
 $nombre_usuario = $_SESSION['nombre'] ?? 'Usuario';
+$exito = isset($_GET['exito']) && $_GET['exito'] === '1';
 
 try {
     $stmt = $conexion->prepare("
-        SELECT i.*, c.nombre AS categoria_nombre 
-        FROM incidencias i 
-        JOIN categorias c ON i.id_categoria = c.id_categoria 
-        WHERE i.id_usuario = :id_usuario 
+        SELECT i.*, c.nombre AS categoria_nombre
+        FROM incidencias i
+        JOIN categorias c ON i.id_categoria = c.id_categoria
+        WHERE i.id_usuario = :id_usuario
         ORDER BY i.fecha_creacion DESC
     ");
     $stmt->execute([':id_usuario' => $id_usuario]);
     $incidencias = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
+    error_log("Error en mis_incidencias.php: " . $e->getMessage());
     $incidencias = [];
 }
 ?>
@@ -163,6 +165,8 @@ try {
             justify-content: space-between;
             align-items: center;
             border-bottom: 1px solid #EFECE6;
+            flex-wrap: wrap;
+            gap: 15px;
         }
 
         .history-title {
@@ -200,6 +204,17 @@ try {
             transform: translateY(-1px);
             color: #FFFFFF;
             background: linear-gradient(135deg, #263454 0%, var(--deep-navy) 100%);
+        }
+
+        .alert-success-luxury {
+            background-color: #ECFDF5;
+            border: 1px solid #A7F3D0;
+            border-left: 4px solid #059669;
+            color: #065F46;
+            border-radius: 10px;
+            padding: 12px 16px;
+            font-size: 0.88rem;
+            margin: 20px 40px 0 40px;
         }
 
         /* Tabla de Lujo */
@@ -330,6 +345,12 @@ try {
                 </a>
             </div>
 
+            <?php if ($exito): ?>
+                <div class="alert-success-luxury" role="alert">
+                    La incidencia fue registrada exitosamente con estado inicial <strong>Abierto</strong>.
+                </div>
+            <?php endif; ?>
+
             <div class="table-responsive">
                 <?php if (count($incidencias) > 0): ?>
                     <table class="table table-luxury">
@@ -346,15 +367,15 @@ try {
                         <tbody>
                             <?php foreach ($incidencias as $inc): ?>
                                 <tr>
-                                    <td><strong>#<?php echo $inc['id_incidencia']; ?></strong></td>
+                                    <td><strong>#<?php echo (int) $inc['id_incidencia']; ?></strong></td>
                                     <td>
-                                        <a href="ver_incidencia.php?id=<?php echo $inc['id_incidencia']; ?>" class="ticket-title-link">
+                                        <a href="ver_incidencia.php?id=<?php echo (int) $inc['id_incidencia']; ?>" class="ticket-title-link">
                                             <?php echo htmlspecialchars($inc['titulo']); ?>
                                         </a>
                                     </td>
                                     <td><span style="font-weight: 500; color: #4B5563;"><?php echo htmlspecialchars($inc['categoria_nombre']); ?></span></td>
                                     <td>
-                                        <?php 
+                                        <?php
                                             $prio = $inc['prioridad'];
                                             $prioClass = ($prio === 'Alta') ? 'prio-alta' : (($prio === 'Baja') ? 'prio-baja' : 'prio-media');
                                         ?>
@@ -366,7 +387,7 @@ try {
                                     <td>
                                         <span class="badge-estado"><?php echo htmlspecialchars($inc['estado']); ?></span>
                                     </td>
-                                    <td style="font-size: 0.85rem; color: #6B7280;"><?php echo $inc['fecha_creacion']; ?></td>
+                                    <td style="font-size: 0.85rem; color: #6B7280;"><?php echo htmlspecialchars($inc['fecha_creacion']); ?></td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>

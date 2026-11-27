@@ -22,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $acceso_valido = true;
                 } 
                 // 2. Respaldo si en BD estaba en texto plano o con el hash de prueba '123456'
-                elseif ($usuario['password_hash'] === $password || ($password === '123456' && in_array($correo, ['usuario@test.com', 'tecnico@test.com']))) {
+                elseif ($usuario['password_hash'] === $password || ($password === '123456' && in_array($correo, ['usuario@test.com', 'tecnico@test.com', 'admin@test.com']))) {
                     $acceso_valido = true;
                     // Actualizar automáticamente a hash seguro en BD
                     $nuevo_hash = password_hash($password, PASSWORD_DEFAULT);
@@ -242,7 +242,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         .form-control-luxury {
             width: 100%;
-            padding: 13px 16px 13px 46px;
+            padding: 13px 44px 13px 46px;
             font-size: 0.95rem;
             font-family: 'Plus Jakarta Sans', sans-serif;
             color: var(--midnight-navy);
@@ -332,7 +332,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         .demo-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: repeat(3, 1fr);
             gap: 10px;
         }
 
@@ -401,6 +401,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             .form-panel {
                 padding: 36px 28px;
+            }
+            .demo-grid {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -492,6 +495,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <button type="button" class="demo-pill" onclick="autocompletar('tecnico@test.com', '123456')">
                         <div class="demo-role"><span class="demo-dot"></span> Técnico TI</div>
                         <div class="demo-email">tecnico@test.com</div>
+                    </button>
+                    <button type="button" class="demo-pill" onclick="autocompletar('admin@test.com', '123456')">
+                        <div class="demo-role"><span class="demo-dot"></span> Administrador</div>
+                        <div class="demo-email">admin@test.com</div>
                     </button>
                 </div>
             </div>
